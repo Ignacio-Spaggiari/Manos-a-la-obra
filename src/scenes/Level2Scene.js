@@ -6,29 +6,52 @@ class Level2Scene extends Phaser.Scene {
     this.load.image('npc1', 'assets/npc1.png');
     this.load.image('npc2', 'assets/npc2.png');
     this.load.image('npc3', 'assets/npc3.png');
+    this.load.image('fondo', 'assets/fondo.png');
+    this.load.image('caja', 'assets/caja.png');
+    this.load.image('advertencia', 'assets/advertencia.png');
+    this.load.image('platEsqIzq', 'assets/plataformas-esq-izq.png');
+    this.load.image('platEsqDer', 'assets/plataformas-esq-der.png');
+    this.load.image('platMedio', 'assets/plataformas-medio.png');
+  }
+
+  // Arma la plataforma visual (esquinas + medio) encima de un rectángulo de colisión ya creado
+  crearPlataformaVisual(x, y, width, height) {
+    const cornerWidth = 32;
+    const visualHeight = height; // un poco más gruesa visualmente que la colisión
+    const middleWidth = Math.max(width - cornerWidth * 2, 10);
+
+    this.add.image(x - width / 2 + cornerWidth / 2, y, 'platEsqIzq').setDisplaySize(cornerWidth, visualHeight);
+    this.add.image(x + width / 2 - cornerWidth / 2, y, 'platEsqDer').setDisplaySize(cornerWidth, visualHeight);
+    this.add.tileSprite(x, y, middleWidth, visualHeight, 'platMedio');
   }
 
   create() {
-    // --- Piso (sólido en todas direcciones) ---
+    // --- Fondo ---
+    this.add.image(400, 240, 'fondo').setDisplaySize(800, 480);
+
+    // --- Piso (colisión invisible) ---
     this.piso = this.physics.add.staticGroup();
-    const pisoRect = this.add.rectangle(400, 460, 800, 40, 0x555555);
+    const pisoRect = this.add.rectangle(400, 460, 800, 40, 0x555555).setVisible(false);
     this.physics.add.existing(pisoRect, true);
     this.piso.add(pisoRect);
 
-    // --- Plataformas elevadas (one-way: se atraviesan desde abajo o apretando abajo) ---
+    // --- Plataformas elevadas (one-way) ---
     this.plataformasElevadas = this.physics.add.staticGroup();
 
-    const plat1a = this.add.rectangle(150, 340, 220, 20, 0x777777);
+    const plat1a = this.add.rectangle(150, 340, 220, 20, 0x777777).setVisible(false);
     this.physics.add.existing(plat1a, true);
     this.plataformasElevadas.add(plat1a);
+    this.crearPlataformaVisual(150, 340, 220, 20);
 
-    const plat1b = this.add.rectangle(650, 340, 220, 20, 0x777777);
+    const plat1b = this.add.rectangle(650, 340, 220, 20, 0x777777).setVisible(false);
     this.physics.add.existing(plat1b, true);
     this.plataformasElevadas.add(plat1b);
+    this.crearPlataformaVisual(650, 340, 220, 20);
 
-    const plat2a = this.add.rectangle(400, 220, 260, 20, 0x999999);
+    const plat2a = this.add.rectangle(400, 220, 260, 20, 0x999999).setVisible(false);
     this.physics.add.existing(plat2a, true);
     this.plataformasElevadas.add(plat2a);
+    this.crearPlataformaVisual(400, 220, 260, 20);
 
     this.physics.world.gravity.y = 600;
 
@@ -40,10 +63,9 @@ class Level2Scene extends Phaser.Scene {
     // --- Controles ---
     this.cursors = this.input.keyboard.createCursorKeys();
 
-    // Colisión one-way para el jugador
     this.physics.add.collider(this.player, this.plataformasElevadas, null, (player, plat) => {
-      if (this.cursors.down.isDown) return false; // mantener abajo = atravesar hacia abajo
-      return player.body.velocity.y >= 0; // solo colisiona si está cayendo (no si está subiendo)
+      if (this.cursors.down.isDown) return false;
+      return player.body.velocity.y >= 0;
     }, this);
 
     // --- Contadores ---
@@ -51,11 +73,10 @@ class Level2Scene extends Phaser.Scene {
     this.npcsTotal = 10;
     this.levelDone = false;
 
-    // Posiciones posibles donde puede aparecer un NPC (piso + ambas capas de plataformas)
     this.spawnPoints = [
-      { x: 300, y: 380 }, { x: 500, y: 380 }, // piso
-      { x: 150, y: 300 }, { x: 650, y: 300 }, // plataformas capa 1
-      { x: 400, y: 180 }                       // plataforma capa 2
+      { x: 300, y: 380 }, { x: 500, y: 380 },
+      { x: 150, y: 300 }, { x: 650, y: 300 },
+      { x: 400, y: 180 }
     ];
 
     // --- HUD ---
@@ -94,7 +115,6 @@ class Level2Scene extends Phaser.Scene {
       this.pushNPC(player, npcObj);
     }, null, this);
 
-    // Un poco más rápido que en el Nivel 1 (más difícil)
     this.time.delayedCall(1200, () => this.avisarYSoltarObjeto(npc, punto.y));
   }
 
@@ -102,20 +122,17 @@ class Level2Scene extends Phaser.Scene {
     if (!npc.active) return;
 
     const avisoX = npc.x;
-    // La advertencia se dibuja cerca de la altura donde está el NPC
-    const aviso = this.add.circle(avisoX, alturaSpawn - 20, 20, 0xff0000, 0.6);
+    const aviso = this.add.image(avisoX, alturaSpawn - 20, 'advertencia').setScale(1.6).setAlpha(0.9);
+    aviso.postFX.addGlow(0xff0000, 4, 0, false, 0.3, 10);
 
     this.time.delayedCall(800, () => {
       aviso.destroy();
       if (!npc.active) return;
 
-      const caja = this.add.rectangle(avisoX, 0, 30, 30, 0x8b4513);
-      this.physics.add.existing(caja);
+      const caja = this.physics.add.image(avisoX, 0, 'caja').setDisplaySize(22, 22);
       caja.body.setAllowGravity(true);
 
-      // La caja es sólida contra todo (piso y plataformas), se rompe al tocar cualquiera
       this.physics.add.collider(caja, this.piso, () => caja.destroy());
-      this.physics.add.collider(caja, this.plataformasElevadas, () => caja.destroy());
 
       this.physics.add.overlap(caja, npc, (cajaObj, npcObj) => {
         if (npcObj.saved || npcObj.pushed) return;

@@ -6,12 +6,18 @@ class Level1Scene extends Phaser.Scene {
     this.load.image('npc1', 'assets/npc1.png');
     this.load.image('npc2', 'assets/npc2.png');
     this.load.image('npc3', 'assets/npc3.png');
+    this.load.image('fondo', 'assets/fondo.png');
+    this.load.image('caja', 'assets/caja.png');
+    this.load.image('advertencia', 'assets/advertencia.png');
   }
 
   create() {
-    // --- Piso ---
+    // --- Fondo ---
+    this.add.image(400, 240, 'fondo').setDisplaySize(800, 480);
+
+    // --- Piso (colisión invisible, lo visual ya está en el fondo) ---
     this.piso = this.physics.add.staticGroup();
-    const pisoRect = this.add.rectangle(400, 460, 800, 40, 0x555555);
+    const pisoRect = this.add.rectangle(400, 460, 800, 40, 0x555555).setVisible(false);
     this.physics.add.existing(pisoRect, true);
     this.piso.add(pisoRect);
 
@@ -36,7 +42,6 @@ class Level1Scene extends Phaser.Scene {
     this.livesText = this.add.text(16, 40, 'Vidas: ' + this.registry.get('lives'), { fontSize: '18px', color: '#fff' });
     this.progressText = this.add.text(16, 64, 'NPCs: 0 / ' + this.npcsTotal, { fontSize: '18px', color: '#fff' });
 
-    // --- Arranca el primer NPC ---
     this.spawnNPC();
   }
 
@@ -66,22 +71,21 @@ class Level1Scene extends Phaser.Scene {
 
     this.npc = npc;
 
-    // Señal de advertencia + caída, después de un ratito de que aparece
     this.time.delayedCall(1500, () => this.avisarYSoltarObjeto(npc));
   }
 
   avisarYSoltarObjeto(npc) {
-    if (!npc.active) return; // ya fue empujado y destruido
+    if (!npc.active) return;
 
     const avisoX = npc.x;
-    const aviso = this.add.circle(avisoX, 440, 20, 0xff0000, 0.6);
+    const aviso = this.add.image(avisoX, 440, 'advertencia').setScale(0.6).setAlpha(0.9);
+    aviso.postFX.addGlow(0xff0000, 4, 0, false, 0.3, 10);
 
     this.time.delayedCall(1000, () => {
       aviso.destroy();
       if (!npc.active) return;
 
-      const caja = this.add.rectangle(avisoX, 0, 30, 30, 0x8b4513);
-      this.physics.add.existing(caja);
+      const caja = this.physics.add.image(avisoX, 0, 'caja').setDisplaySize(22, 22);
       caja.body.setAllowGravity(true);
 
       this.physics.add.collider(caja, this.piso, () => caja.destroy());
@@ -144,9 +148,7 @@ class Level1Scene extends Phaser.Scene {
     this.levelDone = true;
     this.progressText.setText('NPCs: ' + this.npcsTotal + ' / ' + this.npcsTotal);
 
-    // Fondo semitransparente
     this.add.rectangle(400, 240, 800, 480, 0x000000, 0.6);
-
     this.add.text(400, 160, '¡NIVEL 1 COMPLETADO!', { fontSize: '32px', color: '#fff' }).setOrigin(0.5);
 
     const btnSiguiente = this.add.text(400, 240, 'Siguiente Nivel', {

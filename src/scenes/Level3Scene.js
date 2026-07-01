@@ -8,37 +8,61 @@ class Level3Scene extends Phaser.Scene {
     this.load.image('npc3', 'assets/npc3.png');
     this.load.image('enemigo', 'assets/enemigo.png');
     this.load.image('enemigo2', 'assets/enemigo2.png');
+    this.load.image('fondo', 'assets/fondo.png');
+    this.load.image('caja', 'assets/caja.png');
+    this.load.image('advertencia', 'assets/advertencia.png');
+    this.load.image('platEsqIzq', 'assets/plataformas-esq-izq.png');
+    this.load.image('platEsqDer', 'assets/plataformas-esq-der.png');
+    this.load.image('platMedio', 'assets/plataformas-medio.png');
+  }
+
+  crearPlataformaVisual(x, y, width, height) {
+    const cornerWidth = 32;
+    const visualHeight = height;
+    const middleWidth = Math.max(width - cornerWidth * 2, 10);
+
+    this.add.image(x - width / 2 + cornerWidth / 2, y, 'platEsqIzq').setDisplaySize(cornerWidth, visualHeight);
+    this.add.image(x + width / 2 - cornerWidth / 2, y, 'platEsqDer').setDisplaySize(cornerWidth, visualHeight);
+    this.add.tileSprite(x, y, middleWidth, visualHeight, 'platMedio');
   }
 
   create() {
-    // --- Piso ---
+    // --- Fondo ---
+    this.add.image(400, 240, 'fondo').setDisplaySize(800, 480);
+
+    // --- Piso (colisión invisible) ---
     this.piso = this.physics.add.staticGroup();
-    const pisoRect = this.add.rectangle(400, 460, 800, 40, 0x555555);
+    const pisoRect = this.add.rectangle(400, 460, 800, 40, 0x555555).setVisible(false);
     this.physics.add.existing(pisoRect, true);
     this.piso.add(pisoRect);
 
     // --- Plataformas elevadas (one-way), forma de X ---
     this.plataformasElevadas = this.physics.add.staticGroup();
 
-    const platBajaIzq = this.add.rectangle(150, 340, 220, 20, 0x777777);
+    const platBajaIzq = this.add.rectangle(150, 340, 220, 20, 0x777777).setVisible(false);
     this.physics.add.existing(platBajaIzq, true);
     this.plataformasElevadas.add(platBajaIzq);
+    this.crearPlataformaVisual(150, 340, 220, 20);
 
-    const platBajaDer = this.add.rectangle(650, 340, 220, 20, 0x777777);
+    const platBajaDer = this.add.rectangle(650, 340, 220, 20, 0x777777).setVisible(false);
     this.physics.add.existing(platBajaDer, true);
     this.plataformasElevadas.add(platBajaDer);
+    this.crearPlataformaVisual(650, 340, 220, 20);
 
-    const platCentro = this.add.rectangle(400, 220, 260, 20, 0x999999);
+    const platCentro = this.add.rectangle(400, 220, 260, 20, 0x999999).setVisible(false);
     this.physics.add.existing(platCentro, true);
     this.plataformasElevadas.add(platCentro);
+    this.crearPlataformaVisual(400, 220, 260, 20);
 
-    const platAltaIzq = this.add.rectangle(150, 100, 220, 20, 0xaaaaaa);
+    const platAltaIzq = this.add.rectangle(150, 100, 220, 20, 0xaaaaaa).setVisible(false);
     this.physics.add.existing(platAltaIzq, true);
     this.plataformasElevadas.add(platAltaIzq);
+    this.crearPlataformaVisual(150, 100, 220, 20);
 
-    const platAltaDer = this.add.rectangle(650, 100, 220, 20, 0xaaaaaa);
+    const platAltaDer = this.add.rectangle(650, 100, 220, 20, 0xaaaaaa).setVisible(false);
     this.physics.add.existing(platAltaDer, true);
     this.plataformasElevadas.add(platAltaDer);
+    this.crearPlataformaVisual(650, 100, 220, 20);
 
     this.physics.world.gravity.y = 600;
 
@@ -58,11 +82,11 @@ class Level3Scene extends Phaser.Scene {
     this.enemigo1 = this.physics.add.sprite(400, 240, 'enemigo').setScale(1.5);
     this.enemigo1.body.setAllowGravity(false);
     this.enemigo1.setCollideWorldBounds(true);
-    this.enemigo1.postFX.addGlow(0xff0000, 4, 0, false, 0.2, 12); // borde rojo que sigue la forma del sprite
+    this.enemigo1.postFX.addGlow(0xff0000, 4, 0, false, 0.2, 12);
 
     this.physics.add.overlap(this.player, this.enemigo1, () => this.hitByEnemy(), null, this);
 
-    // --- Enemigo 2: aparece recién a los 5 NPCs salvados, persigue al NPC activo ---
+    // --- Enemigo 2: aparece a los 5 NPCs salvados ---
     this.enemigo2 = null;
     this.enemigo2Spawned = false;
     this.enemigo2TimeOnNpc = 0;
@@ -83,7 +107,9 @@ class Level3Scene extends Phaser.Scene {
       { x: 150, y: 60 }, { x: 650, y: 60 }
     ];
 
-     this.registry.set('lives', 4);
+    // --- Nivel 3: arranca con 4 vidas ---
+    this.registry.set('lives', 4);
+
     // --- HUD ---
     this.scoreText = this.add.text(16, 16, 'Puntos: ' + this.registry.get('score'), { fontSize: '18px', color: '#fff' });
     this.livesText = this.add.text(16, 40, 'Vidas: ' + this.registry.get('lives'), { fontSize: '18px', color: '#fff' });
@@ -122,14 +148,13 @@ class Level3Scene extends Phaser.Scene {
 
     this.currentNpc = npc;
 
-    // Más tiempo de reacción cuanto más arriba spawnea el NPC
     let delayInicial;
     if (punto.y <= 100) {
-      delayInicial = 2200; // plataformas altas (y: 60)
+      delayInicial = 2200;
     } else if (punto.y <= 220) {
-      delayInicial = 1600; // plataforma central (y: 180)
+      delayInicial = 1600;
     } else {
-      delayInicial = 1000; // piso y plataformas bajas (y: 300, 380)
+      delayInicial = 1000;
     }
 
     this.time.delayedCall(delayInicial, () => this.avisarYSoltarObjeto(npc, punto.y));
@@ -139,16 +164,14 @@ class Level3Scene extends Phaser.Scene {
     if (!npc.active) return;
 
     const avisoX = npc.x;
-    const aviso = this.add.circle(avisoX, alturaSpawn - 20, 20, 0xff0000, 0.6);
+    const aviso = this.add.image(avisoX, alturaSpawn - 20, 'advertencia').setScale(1.6).setAlpha(0.9);
+    aviso.postFX.addGlow(0xff0000, 4, 0, false, 0.3, 10);
 
     this.time.delayedCall(700, () => {
       aviso.destroy();
       if (!npc.active) return;
 
-      // La caja cae desde arriba de todo y solo se destruye al tocar el piso o al NPC.
-      // Ya NO choca con las plataformas elevadas, así siempre puede llegar hasta el NPC.
-      const caja = this.add.rectangle(avisoX, 0, 30, 30, 0x8b4513);
-      this.physics.add.existing(caja);
+      const caja = this.physics.add.image(avisoX, 0, 'caja').setDisplaySize(22, 22);
       caja.body.setAllowGravity(true);
 
       this.physics.add.collider(caja, this.piso, () => caja.destroy());
@@ -199,7 +222,7 @@ class Level3Scene extends Phaser.Scene {
     });
   }
 
-spawnEnemigo2() {
+  spawnEnemigo2() {
     this.enemigo2Spawned = true;
     this.enemigo2 = this.physics.add.sprite(400, 460, 'enemigo2').setScale(1.5);
     this.enemigo2.body.setAllowGravity(false);
@@ -208,6 +231,7 @@ spawnEnemigo2() {
 
     this.physics.add.overlap(this.player, this.enemigo2, () => this.hitByEnemy(), null, this);
   }
+
   hitByEnemy() {
     if (this.enemyHitCooldown) return;
     this.enemyHitCooldown = true;
@@ -250,7 +274,7 @@ spawnEnemigo2() {
     btnMenu.on('pointerdown', () => this.scene.start('MenuScene'));
   }
 
-update(time, delta) {
+  update(time, delta) {
     if (this.cursors.left.isDown) {
       this.player.setVelocityX(-220);
     } else if (this.cursors.right.isDown) {
@@ -263,14 +287,12 @@ update(time, delta) {
       this.player.setVelocityY(-430);
     }
 
-    // Enemigo 1: persigue al jugador (daño instantáneo al tocarlo, sin cambios)
     const dx1 = this.player.x - this.enemigo1.x;
     const dy1 = this.player.y - this.enemigo1.y;
     const dist1 = Math.sqrt(dx1 * dx1 + dy1 * dy1) || 1;
     const speed1 = 90;
     this.enemigo1.setVelocity((dx1 / dist1) * speed1, (dy1 / dist1) * speed1);
 
-    // Enemigo 2: persigue al NPC activo, pero necesita quedarse 2.5s ENCIMA para matarlo
     if (this.enemigo2 && this.currentNpc && this.currentNpc.active) {
       const dx2 = this.currentNpc.x - this.enemigo2.x;
       const dy2 = this.currentNpc.y - this.enemigo2.y;
@@ -278,14 +300,12 @@ update(time, delta) {
       const speed2 = 55;
       this.enemigo2.setVelocity((dx2 / dist2) * speed2, (dy2 / dist2) * speed2);
 
-      // ¿Está "encima" del NPC? (suficientemente cerca en ambos ejes)
       const estaEncima = Math.abs(dx2) < 20 && Math.abs(dy2) < 20;
 
       if (estaEncima) {
         this.enemigo2TimeOnNpc += delta;
 
         if (this.enemigo2TimeOnNpc >= 1900) {
-          // Pasaron 2.5s encima: mata al NPC y resta vida
           const npcAtrapado = this.currentNpc;
           this.enemigo2TimeOnNpc = 0;
           this.currentNpc = null;
@@ -294,7 +314,7 @@ update(time, delta) {
           this.time.delayedCall(500, () => this.spawnNPC());
         }
       } else {
-        this.enemigo2TimeOnNpc = 0; // se alejó, se resetea el contador
+        this.enemigo2TimeOnNpc = 0;
       }
     } else if (this.enemigo2) {
       this.enemigo2.setVelocity(0, 0);
