@@ -35,7 +35,7 @@ class Level3Scene extends Phaser.Scene {
     const pisoRect = this.add.rectangle(400, 460, 800, 40, 0x555555).setVisible(false);
     this.physics.add.existing(pisoRect, true);
     this.piso.add(pisoRect);
-
+    this.crearPlataformaVisual(400, 460, 800, 40);
     // --- Plataformas elevadas (one-way), forma de X ---
     this.plataformasElevadas = this.physics.add.staticGroup();
 
@@ -94,8 +94,7 @@ class Level3Scene extends Phaser.Scene {
     this.enemyHitCooldown = false;
 
     // --- Contadores ---
-    this.npcsSpawned = 0;
-    this.npcsSavedCount = 0;
+    this.npcsSaved = 0;
     this.npcsTotal = 10;
     this.levelDone = false;
     this.currentNpc = null;
@@ -119,13 +118,10 @@ class Level3Scene extends Phaser.Scene {
   }
 
   spawnNPC() {
-    if (this.npcsSpawned >= this.npcsTotal) {
+    if (this.npcsSaved >= this.npcsTotal) {
       this.showEndScreen();
       return;
     }
-
-    this.npcsSpawned++;
-    this.progressText.setText('NPCs: ' + (this.npcsSpawned - 1) + ' / ' + this.npcsTotal);
 
     const texturas = ['npc1', 'npc2', 'npc3'];
     const textura = Phaser.Utils.Array.GetRandom(texturas);
@@ -164,7 +160,7 @@ class Level3Scene extends Phaser.Scene {
     if (!npc.active) return;
 
     const avisoX = npc.x;
-    const aviso = this.add.image(avisoX, alturaSpawn - 20, 'advertencia').setScale(1.6).setAlpha(0.9);
+    const aviso = this.add.image(avisoX, alturaSpawn - 20, 'advertencia').setScale(1.3).setAlpha(0.9);
     aviso.postFX.addGlow(0xff0000, 4, 0, false, 0.3, 10);
 
     this.time.delayedCall(700, () => {
@@ -193,8 +189,10 @@ class Level3Scene extends Phaser.Scene {
     npc.saved = true;
     this.addScore(10);
 
-    this.npcsSavedCount++;
-    if (this.npcsSavedCount === 5 && !this.enemigo2Spawned) {
+    this.npcsSaved++;
+    this.progressText.setText('NPCs: ' + this.npcsSaved + ' / ' + this.npcsTotal);
+
+    if (this.npcsSaved === 5 && !this.enemigo2Spawned) {
       this.spawnEnemigo2();
     }
 
@@ -243,9 +241,34 @@ class Level3Scene extends Phaser.Scene {
     let lives = this.registry.get('lives') - 1;
     this.registry.set('lives', lives);
     this.livesText.setText('Vidas: ' + lives);
+
+    // Shake de cámara: siempre que se pierda una vida, sea la causa que sea
+    this.cameras.main.shake(200, 0.01);
+
     if (lives <= 0) {
       this.scene.start('GameOverScene');
     }
+  }
+
+  playerHitFeedback() {
+    this.tweens.add({
+      targets: this.player,
+      alpha: 0,
+      duration: 80,
+      yoyo: true,
+      repeat: 4
+    });
+  }
+
+  flashDamage() {
+    // Destello rojo cubriendo toda la pantalla, para feedback claro de daño
+    const flash = this.add.rectangle(400, 240, 800, 480, 0xff0000, 0.35).setDepth(999);
+    this.tweens.add({
+      targets: flash,
+      alpha: 0,
+      duration: 250,
+      onComplete: () => flash.destroy()
+    });
   }
 
   addScore(amount) {

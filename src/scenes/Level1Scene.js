@@ -9,6 +9,19 @@ class Level1Scene extends Phaser.Scene {
     this.load.image('fondo', 'assets/fondo.png');
     this.load.image('caja', 'assets/caja.png');
     this.load.image('advertencia', 'assets/advertencia.png');
+    this.load.image('platEsqIzq', 'assets/plataformas-esq-izq.png');
+    this.load.image('platEsqDer', 'assets/plataformas-esq-der.png');
+    this.load.image('platMedio', 'assets/plataformas-medio.png');
+  }
+
+  crearPlataformaVisual(x, y, width, height) {
+    const cornerWidth = 32;
+    const visualHeight = height;
+    const middleWidth = Math.max(width - cornerWidth * 2, 10);
+
+    this.add.image(x - width / 2 + cornerWidth / 2, y, 'platEsqIzq').setDisplaySize(cornerWidth, visualHeight);
+    this.add.image(x + width / 2 - cornerWidth / 2, y, 'platEsqDer').setDisplaySize(cornerWidth, visualHeight);
+    this.add.tileSprite(x, y, middleWidth, visualHeight, 'platMedio');
   }
 
   create() {
@@ -20,6 +33,7 @@ class Level1Scene extends Phaser.Scene {
     const pisoRect = this.add.rectangle(400, 460, 800, 40, 0x555555).setVisible(false);
     this.physics.add.existing(pisoRect, true);
     this.piso.add(pisoRect);
+    this.crearPlataformaVisual(400, 460, 800, 40);
 
     this.physics.world.gravity.y = 600;
 
@@ -32,7 +46,7 @@ class Level1Scene extends Phaser.Scene {
     this.cursors = this.input.keyboard.createCursorKeys();
 
     // --- Contadores ---
-    this.npcsSpawned = 0;
+    this.npcsSaved = 0;
     this.npcsTotal = 10;
     this.npc = null;
     this.levelDone = false;
@@ -46,13 +60,10 @@ class Level1Scene extends Phaser.Scene {
   }
 
   spawnNPC() {
-    if (this.npcsSpawned >= this.npcsTotal) {
+    if (this.npcsSaved >= this.npcsTotal) {
       this.showEndScreen();
       return;
     }
-
-    this.npcsSpawned++;
-    this.progressText.setText('NPCs: ' + (this.npcsSpawned - 1) + ' / ' + this.npcsTotal);
 
     const texturas = ['npc1', 'npc2', 'npc3'];
     const textura = Phaser.Utils.Array.GetRandom(texturas);
@@ -78,7 +89,7 @@ class Level1Scene extends Phaser.Scene {
     if (!npc.active) return;
 
     const avisoX = npc.x;
-    const aviso = this.add.image(avisoX, 440, 'advertencia').setScale(0.6).setAlpha(0.9);
+    const aviso = this.add.image(avisoX, 440, 'advertencia').setScale(1.3).setAlpha(0.9);
     aviso.postFX.addGlow(0xff0000, 4, 0, false, 0.3, 10);
 
     this.time.delayedCall(1000, () => {
@@ -104,6 +115,9 @@ class Level1Scene extends Phaser.Scene {
     npc.pushed = true;
     npc.saved = true;
     this.addScore(10);
+
+    this.npcsSaved++;
+    this.progressText.setText('NPCs: ' + this.npcsSaved + ' / ' + this.npcsTotal);
 
     npc.body.enable = false;
 
@@ -132,9 +146,34 @@ class Level1Scene extends Phaser.Scene {
     let lives = this.registry.get('lives') - 1;
     this.registry.set('lives', lives);
     this.livesText.setText('Vidas: ' + lives);
+
+    // Shake de cámara: siempre que se pierda una vida, sea la causa que sea
+    this.cameras.main.shake(200, 0.01);
+
     if (lives <= 0) {
       this.scene.start('GameOverScene');
     }
+  }
+
+  playerHitFeedback() {
+    this.tweens.add({
+      targets: this.player,
+      alpha: 0,
+      duration: 80,
+      yoyo: true,
+      repeat: 4
+    });
+  }
+
+  flashDamage() {
+    // Destello rojo cubriendo toda la pantalla, para feedback claro de daño
+    const flash = this.add.rectangle(400, 240, 800, 480, 0xff0000, 0.35).setDepth(999);
+    this.tweens.add({
+      targets: flash,
+      alpha: 0,
+      duration: 250,
+      onComplete: () => flash.destroy()
+    });
   }
 
   addScore(amount) {
