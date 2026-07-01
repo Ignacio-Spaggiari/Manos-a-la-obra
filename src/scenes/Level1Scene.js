@@ -25,6 +25,8 @@ class Level1Scene extends Phaser.Scene {
   }
 
   create() {
+        this.registry.set('currentLevel', 'Level1Scene');
+
     // --- Fondo ---
     this.add.image(400, 240, 'fondo').setDisplaySize(800, 480);
 

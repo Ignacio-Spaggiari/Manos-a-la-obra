@@ -7,7 +7,9 @@ class MenuScene extends Phaser.Scene {
     this.registry.set('lives', 3);
     this.registry.set('npcsSaved', 0);
 
-    this.add.text(400, 100, 'NOMBRE DEL JUEGO', { fontSize: '32px', color: '#fff' }).setOrigin(0.5);
+    this.add.rectangle(400, 240, 800, 480, 0x000000, 0.85);
+
+    this.add.text(400, 100, 'MANOS A LA OBRA', { fontSize: '32px', color: '#63b5bb' }).setOrigin(0.5);
 
     const playBtn = this.add.text(400, 200, 'JUGAR', { fontSize: '24px', color: '#0f0', backgroundColor: '#000', padding: {x:20,y:10} })
       .setOrigin(0.5).setInteractive();

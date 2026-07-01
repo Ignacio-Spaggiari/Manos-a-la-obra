@@ -27,6 +27,7 @@ class Level3Scene extends Phaser.Scene {
   }
 
   create() {
+    this.registry.set('currentLevel', 'Level3Scene');
     // --- Fondo ---
     this.add.image(400, 240, 'fondo').setDisplaySize(800, 480);
 
@@ -277,24 +278,13 @@ class Level3Scene extends Phaser.Scene {
     this.scoreText.setText('Puntos: ' + score);
   }
 
-  showEndScreen() {
+    showEndScreen() {
     if (this.levelDone) return;
     this.levelDone = true;
     this.progressText.setText('NPCs: ' + this.npcsTotal + ' / ' + this.npcsTotal);
 
-    this.add.rectangle(400, 240, 800, 480, 0x000000, 0.6);
-    this.add.text(400, 160, '¡NIVEL 3 COMPLETADO!', { fontSize: '32px', color: '#fff' }).setOrigin(0.5);
-
-    const btnSiguiente = this.add.text(400, 240, 'Ver Victoria', {
-      fontSize: '24px', color: '#0f0', backgroundColor: '#000', padding: { x: 20, y: 10 }
-    }).setOrigin(0.5).setInteractive();
-
-    const btnMenu = this.add.text(400, 320, 'Volver al Menú', {
-      fontSize: '24px', color: '#ff0', backgroundColor: '#000', padding: { x: 20, y: 10 }
-    }).setOrigin(0.5).setInteractive();
-
-    btnSiguiente.on('pointerdown', () => this.scene.start('VictoryScene'));
-    btnMenu.on('pointerdown', () => this.scene.start('MenuScene'));
+    // Pasa directo a la pantalla de victoria, sin botones intermedios
+    this.time.delayedCall(800, () => this.scene.start('VictoryScene'));
   }
 
   update(time, delta) {
